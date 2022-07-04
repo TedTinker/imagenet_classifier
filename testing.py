@@ -3,7 +3,7 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Without this, pyplot crashes the kernal
 #data_folder    = r"C:\Users\tedjt\Desktop\imagenet"
 #program_folder = r"C:\Users\tedjt\Desktop\imagenet_classifier"
-from utils import data_folder, program_folder
+from utils import data_folder, program_folder, val_dict, train_dict
 
 import pandas as pd
 import itertools
@@ -33,9 +33,20 @@ print("Train solutions, but not train image names: {}.".format(len(list(set(trai
 missed_solutions = list(set(train_image_names) - set(train_solutions["ImageId"]))
 total_classes = [i[:9] for i in train_image_names]
 classes = [i[:9] for i in missed_solutions]
-print("\nClasses in missed solutions: {}.".format(len(list(set(classes)))))
-for c in list(set(classes)):
-    print("\tClass {}: missing {} out of {}.".format(c, classes.count(c), total_classes.count(c)))
+print("Classes in missed solutions: {}.".format(len(list(set(classes)))))
+#for c in list(set(classes)):
+#    print("\tClass {}: missing {} out of {}.".format(c, classes.count(c), total_classes.count(c)))
     
+val_classes = [[s[0] for s in solution] for solution in val_dict.values()]
+val_multi_classes = [classes for classes in val_classes if len(classes) > 1]
+val_really_multi_classes = [classes for classes in val_multi_classes if len(list(set(classes))) > 1]
+print("\n\nMulti-class val: {}/{}.".format(len(val_multi_classes), len(val_classes)))
+print("Actually multi-class val: {}.".format(len(val_really_multi_classes)))
+
+train_classes = [[s[0] for s in solution] for solution in train_dict.values()]
+train_multi_classes = [classes for classes in train_classes if len(classes) > 1]
+val_really_multi_classes = [classes for classes in train_multi_classes if len(list(set(classes))) > 1]
+print("\nMulti-class train: {}/{}.".format(len(train_multi_classes), len(train_classes)))
+print("Actually multi-class train: {}.".format(len(train_really_multi_classes)))
 
 # %%

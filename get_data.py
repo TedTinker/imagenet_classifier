@@ -3,57 +3,59 @@ import torch
 
 import os
 import numpy as np
-from random import sample
 try:    from keras.preprocessing.image import load_img
 except: from PIL import Image
+import imagesize
+from random import sample
 
-from utils import data_folder, image_size, val_dict, train_dict, show_image
+from utils import data_folder, program_folder, image_size, val_dict, train_dict, show_image
 
 
 
-def get_images(files, size, test):
+def get_images(files, test):
     os.chdir(data_folder)
+    if(test): files = ["Data/val/{}".format(file) for file in files]
+    else:     files = ["Data/train/{}/{}".format(file[:9], file) for file in files]
     images = []
-    if(test): files = ["images/val/{}".format(file) for file in files]
-    else:     files = ["images/train/{}/{}".format(file[:9], file) for file in files]
+    image_sizes = []
     for file in files:
-        try:    images.append(np.array(load_img(file, target_size=(size, size)))/255)
-        except: images.append(np.array(Image.open(file).resize((size, size)))/255)
+        image_sizes.append(imagesize.get(file))
+        try:    images.append(np.array(load_img(file, target_size=(image_size, image_size)))/255)
+        except: images.append(np.array(Image.open(file).resize((image_size, image_size)))/255)
     images = [torch.from_numpy(image).unsqueeze(0) for image in images]
     for i, image in enumerate(images):
-        if(image.shape == (1, size, size)): 
+        if(image.shape == (1, image_size, image_size)): 
             image = image.unsqueeze(-1).repeat((1,1,1,3)) 
             images[i] = image
-    return(torch.cat(images, 0))
+    os.chdir(program_folder)
+    return(torch.cat(images, 0).float(), image_sizes)
 
 def get_data(batch_size = 64, size = image_size, test = False):
     if(test):
-        image_names = sample(val_dict.keys(), batch_size)
-        solutions = torch.cat([val_dict[n] for n in image_names])
+        image_names = sample(list(val_dict.keys()), batch_size)
+        solutions = [val_dict[n] for n in image_names]
+        classifications = [torch.tensor([s[0] for s in solution]) for solution in solutions]
+        positions = [torch.tensor([s[1] for s in solution]).float() for solution in solutions]
     else:
-        image_names = sample(train_dict.keys(), batch_size)
-        solutions = torch.cat([train_dict[n] for n in image_names])
-    images = get_images(image_names, size, test)
-    return(images.float(), solutions.float())
+        image_names = sample(list(train_dict.keys()), batch_size)
+        solutions = [train_dict[n] for n in image_names]
+        classifications = [torch.tensor([s[0] for s in solution]) for solution in solutions]
+        positions = [torch.tensor([s[1] for s in solution]).float() for solution in solutions]
+    images, image_sizes = get_images(image_names, test)
+    return(images, classifications, positions)
         
         
         
 if __name__ == "__main__":
 
-    images, solutions = get_data(test = True)
+    print("VAL:")
+    images, classifications, positions = get_data(test = True)
+    for i in range(10):
+        show_image(images[i], classifications[i], positions[i])
 
-    print()
-    print(images.shape)
-    print(solutions.shape)
-    print()
-
-    images, solutions = get_data(test = False)
-
-    print()
-    print(images.shape)
-    print(solutions.shape)
-    print()
-    
-    show_image(images[0], solutions[0])
+    print("TRAIN:")
+    images, classifications, positions = get_data(test = False)
+    for i in range(10):
+        show_image(images[i], classifications[i], positions[i])
     
 # %%

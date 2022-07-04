@@ -6,8 +6,10 @@ import itertools
 
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Without this, pyplot crashes the kernal
-data_folder = r"C:\Users\tedjt\Desktop\imagenet"
-program_folder = r"C:\Users\tedjt\Desktop\imagenet_classifier"
+#data_folder    = r"C:\Users\tedjt\Desktop\imagenet"
+#program_folder = r"C:\Users\tedjt\Desktop\imagenet_classifier"
+data_folder     = r"/home/ted/Desktop/imagenet"
+program_folder  = r"/home/ted/Desktop/imagenet_classifier"
 
 import torch 
 
@@ -39,6 +41,18 @@ try:
     val_dict   = torch.load("val_dict.pt")
 except:
     print("Can't load dictionaries. Making and saving dictionaries...")
+    
+    val_image_names = os.listdir("Data/val")
+    val_image_names.sort()
+    val_solutions = pd.read_csv('val_solution.csv', sep=',',header=0)
+    val_solutions["ImageId"] = val_solutions["ImageId"] + ".JPEG"
+    val_solutions["PredictionString"] = val_solutions["PredictionString"].str.split()
+    print("\nVal image names: {}. Val solutions: {}.".format(len(val_image_names), len(val_solutions)))
+    val_solutions = val_solutions.iloc[pd.Index(val_solutions['ImageId']).get_indexer(val_image_names)]["PredictionString"].values.tolist()
+    val_dict = {image : [solution[i:i+5] for i in range(0, len(solution), 5)] for image, solution in zip(
+        val_image_names,
+        val_solutions)}
+        
     train_image_names = []
     for folder in os.listdir("Data/train"):
         train_image_names.append(os.listdir("Data/train/" + folder))
@@ -47,20 +61,14 @@ except:
     train_solutions = pd.read_csv('train_solution.csv', sep=',',header=0)
     train_solutions["ImageId"] = train_solutions["ImageId"] + ".JPEG"
     train_solutions["PredictionString"] = train_solutions["PredictionString"].str.split()
+    print("Train image names: {}. Train solutions: {}.".format(len(train_image_names), len(train_solutions)))
     train_solutions = train_solutions.iloc[pd.Index(train_solutions['ImageId']).get_indexer(train_image_names)]["PredictionString"].values.tolist()
     train_dict = {image : [solution[i:i+5] for i in range(0, len(solution), 5)] for image, solution in zip(
         train_image_names,
         train_solutions)}
-    
-    val_image_names = os.listdir("Data/val")
-    val_image_names.sort()
-    val_solutions = pd.read_csv('val_solution.csv', sep=',',header=0)
-    val_solutions["ImageId"] = val_solutions["ImageId"] + ".JPEG"
-    val_solutions["PredictionString"] = val_solutions["PredictionString"].str.split()
-    val_solutions = val_solutions.iloc[pd.Index(val_solutions['ImageId']).get_indexer(val_image_names)]["PredictionString"].values.tolist()
-    val_dict = {image : [solution[i:i+5] for i in range(0, len(solution), 5)] for image, solution in zip(
-        val_image_names,
-        val_solutions)}
+
+    print("\nVal image names: {}. Val solutions: {}.".format(len(val_image_names), len(val_solutions)))
+    print("Train image names: {}. Train solutions: {}.".format(len(train_image_names), len(train_solutions)))
     
     def finalize_solutions(k, v, test):
         hots = []
@@ -81,8 +89,8 @@ except:
 os.chdir(program_folder)
 
 if __name__ == "__main__":
+    print("\nVal image names: \t{}. \t\tVal solutions: \t\t{}.".format(len(val_dict.keys()), len(val_dict.values())))
     print("Training image names: \t{}. \tTraining solutions: \t{}.".format(len(train_dict.keys()), len(train_dict.values())))
-    print("Val image names: \t{}. \t\tVal solutions: \t\t{}.".format(len(val_dict.keys()), len(val_dict.values())))
     print("Solutions: {}.".format(len(all_solutions)))
     
     
@@ -100,8 +108,12 @@ def show_image(image, classifications, positions):
     plt.imshow(image)
     title = ""
     for i, (c, p) in enumerate(zip(classifications, positions)):
+        p[0] = image_size * (p[0] + 1)/2
+        p[1] = image_size * (p[1] + 1)/2
+        p[2] = image_size * (p[2] + 1)/2
+        p[3] = image_size * (p[3] + 1)/2
         title += mapping[c.item()] + ": "
-        title += ", ".join([str(p_) for p_ in p.tolist()]) + "."
+        title += ", ".join([str(round(p_)) for p_ in p.tolist()]) + "."
         if(i < len(positions)):
             title += "\n"
         box = [p_ for p_ in p.tolist()]

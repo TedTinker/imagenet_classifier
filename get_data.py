@@ -42,18 +42,23 @@ def get_data(batch_size = 64, size = image_size, test = False):
         classifications = [torch.tensor([s[0] for s in solution]) for solution in solutions]
         positions = [torch.tensor([s[1] for s in solution]).float() for solution in solutions]
     images, image_sizes = get_images(image_names, test)
+    for p, s in zip(positions, image_sizes):
+        p[:,0] = 2*(p[:,0]/s[0]) - 1
+        p[:,1] = 2*(p[:,1]/s[1]) - 1
+        p[:,2] = 2*(p[:,2]/s[0]) - 1
+        p[:,3] = 2*(p[:,3]/s[1]) - 1
     return(images, classifications, positions)
         
         
         
 if __name__ == "__main__":
 
-    print("VAL:")
+    print("\n\nVAL:\n\n")
     images, classifications, positions = get_data(test = True)
     for i in range(10):
         show_image(images[i], classifications[i], positions[i])
 
-    print("TRAIN:")
+    print("\n\nTRAIN:\n\n")
     images, classifications, positions = get_data(test = False)
     for i in range(10):
         show_image(images[i], classifications[i], positions[i])

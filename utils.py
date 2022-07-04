@@ -104,14 +104,46 @@ def init_weights(m):
 
 
 import matplotlib.pyplot as plt
-def show_image(image, classifications, positions):
+def show_image(image_name, image, classifications, positions):
     plt.imshow(image)
-    title = ""
+    title = image_name + ":\n"
     for i, (c, p) in enumerate(zip(classifications, positions)):
-        p[0] = image_size * (p[0] + 1)/2
-        p[1] = image_size * (p[1] + 1)/2
-        p[2] = image_size * (p[2] + 1)/2
-        p[3] = image_size * (p[3] + 1)/2
+        p[0] = image_size * p[0]
+        p[1] = image_size * p[1]
+        p[2] = image_size * p[2]
+        p[3] = image_size * p[3]
+        title += mapping[c.item()] + ": "
+        title += ", ".join([str(round(p_)) for p_ in p.tolist()]) + "."
+        if(i < len(positions)):
+            title += "\n"
+        box = [p_ for p_ in p.tolist()]
+        x = [box[1], box[2]]
+        y = [box[1], box[3]]
+        x = [x[0], x[0], x[1], x[1], x[0]]
+        y = [y[0], y[1], y[1], y[0], y[0]]
+        plt.plot(x, y, color = "yellow")
+    plt.title(title)
+    plt.axis('off')
+    plt.show()
+    plt.close()
+    
+import numpy as np
+try:    from keras.preprocessing.image import load_img
+except: from PIL import Image
+    
+def show_this_image(image_name, test):
+    os.chdir(data_folder)
+    if(test): file = "Data/val/{}".format(image_name)
+    else:     file = "Data/train/{}/{}".format(image_name[:9], image_name)
+    if(test): solutions = val_dict[image_name]
+    else:     solutions = train_dict[image_name]
+    classifications = [torch.tensor([solution[0]]) for solution in solutions]
+    positions = torch.tensor([solution[1] for solution in solutions]).float() 
+    try:    image = np.array(load_img(file))/255
+    except: image = np.array(Image.open(file))/255
+    plt.imshow(image)
+    title = image_name + ":\n"
+    for i, (c, p) in enumerate(zip(classifications, positions)):
         title += mapping[c.item()] + ": "
         title += ", ".join([str(round(p_)) for p_ in p.tolist()]) + "."
         if(i < len(positions)):
